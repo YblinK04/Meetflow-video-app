@@ -10,7 +10,6 @@ const VideoCall = ({ roomID }: { roomID: string }) => {
 
   useEffect(() => {
     if (zpRef.current || isInitializing.current) return;
-    
     isInitializing.current = true;
 
     const initMeeting = async () => {
@@ -20,26 +19,29 @@ const VideoCall = ({ roomID }: { roomID: string }) => {
         const appID = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID);
         const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET || "";
 
+        if (!appID || !serverSecret) return;
+
         const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-          appID,
-          serverSecret,
-          roomID,
-          randomID(5),
-          randomID(5)
+          appID, serverSecret, roomID, randomID(5), randomID(5)
         );
 
         const zp = ZegoUIKitPrebuilt.create(kitToken);
         zpRef.current = zp; 
 
-        zp.joinRoom({
+        const config: any = {
           container: containerRef.current,
-          scenario: {
-            mode: ZegoUIKitPrebuilt.GroupCall,
-          },
+          scenario: { mode: ZegoUIKitPrebuilt.GroupCall },
+          showPreJoinView: true, 
+          branding: { logoURL: "/flower.svg" },
+          primaryColor: "#be185d", 
           showScreenSharingButton: true,
-          turnOnCameraWhenJoining: false,
-          turnOnMicrophoneWhenJoining: false,
-        });
+          showUserList: true,
+          maxUsers: 10,
+          theme: "dark"
+        };
+
+        zp.joinRoom(config);
+
       } catch (error) {
         console.error("Zego error:", error);
         isInitializing.current = false; 
@@ -50,15 +52,16 @@ const VideoCall = ({ roomID }: { roomID: string }) => {
 
     return () => {
       if (zpRef.current) {
-       
-        zpRef.current.destroy();
+        if (typeof zpRef.current.destroy === 'function') {
+          zpRef.current.destroy();
+        }
         zpRef.current = null;
         isInitializing.current = false;
       }
     };
   }, [roomID]);
 
-  return <div className="w-full h-screen bg-black" ref={containerRef} />;
+  return <div className="w-full h-screen bg-[#0f0206]" ref={containerRef} />;
 };
 
 export default VideoCall;
