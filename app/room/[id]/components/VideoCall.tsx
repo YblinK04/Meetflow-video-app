@@ -3,14 +3,15 @@
 import React, { useEffect, useRef } from 'react';
 import { randomID } from "@/utils/helpers";
 
-let isJoining = false;
-
 const VideoCall = ({ roomID }: { roomID: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const zpRef = useRef<any>(null); 
+  const isInitializing = useRef(false);
 
   useEffect(() => {
-    if (isJoining) return;
-    isJoining = true;
+    if (zpRef.current || isInitializing.current) return;
+    
+    isInitializing.current = true;
 
     const initMeeting = async () => {
       try {
@@ -18,8 +19,6 @@ const VideoCall = ({ roomID }: { roomID: string }) => {
 
         const appID = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID);
         const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET || "";
-
-        if (!appID || !serverSecret) return;
 
         const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
           appID,
@@ -30,30 +29,36 @@ const VideoCall = ({ roomID }: { roomID: string }) => {
         );
 
         const zp = ZegoUIKitPrebuilt.create(kitToken);
+        zpRef.current = zp; 
 
-        await zp.joinRoom({
+        zp.joinRoom({
           container: containerRef.current,
           scenario: {
             mode: ZegoUIKitPrebuilt.GroupCall,
           },
           showScreenSharingButton: true,
-          turnOnCameraWhenJoining: true,
-          turnOnMicrophoneWhenJoining: true,
+          turnOnCameraWhenJoining: false,
+          turnOnMicrophoneWhenJoining: false,
         });
       } catch (error) {
         console.error("Zego error:", error);
-        isJoining = false;
+        isInitializing.current = false; 
       }
     };
 
     initMeeting();
 
     return () => {
-      isJoining = false;
+      if (zpRef.current) {
+       
+        zpRef.current.destroy();
+        zpRef.current = null;
+        isInitializing.current = false;
+      }
     };
   }, [roomID]);
 
-  return <div className="flex-1 w-full h-full min-h-screen" ref={containerRef} />;
+  return <div className="w-full h-screen bg-black" ref={containerRef} />;
 };
 
 export default VideoCall;
